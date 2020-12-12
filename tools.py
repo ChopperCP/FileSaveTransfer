@@ -1,5 +1,16 @@
+import math
+
+inverts = dict()
+
+
 def invert(k, p):
     # 扩展欧几里得算法求k关于p的逆元
+    global inverts
+
+    if inverts.__contains__(k):
+        # 如果算过了就不用算了
+        return inverts[k]
+
     if k == 0:
         raise ZeroDivisionError('division by zero')
 
@@ -23,6 +34,7 @@ def invert(k, p):
     assert gcd == 1
     assert (k * x) % p == 1
 
+    inverts[k] = x % p
     return x % p
 
 
@@ -113,3 +125,24 @@ def get_iroot(x, p):
         return ret, p - ret
     else:
         raise Exception()
+
+
+def bytes2int(bytes):
+    result = 0
+
+    for b in bytes:
+        result = result * 256 + int(b)
+
+    return result
+
+
+def int2bytes(value: int):
+    length = math.ceil(value.bit_length()/8)
+    result = []
+
+    for i in range(0, length):
+        result.append(value >> (i * 8) & 0xff)
+
+    result.reverse()
+
+    return bytes(result)

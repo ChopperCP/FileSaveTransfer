@@ -29,12 +29,19 @@ class EllipticCurve:
 
     def invert(self, point):
         # 求点的加法逆元
-        return (point[0], -point[1])
+        return (point[0], -point[1] % self.p)
 
     def add(self, p1, p2):
         # 相加运算
         # p1 p2 是点，二元素元组/列表
         # 注：O=(0,0)是无穷远点，也是加法单位元
+
+        if p1 is None:
+            # 0 + p2 = p2
+            return p2
+        if p2 is None:
+            # p1 + 0 = p1
+            return p1
 
         # 相加的点不在曲线上
         if(self.is_on_curve(p1) == False or self.is_on_curve(p2) == False):
@@ -58,65 +65,89 @@ class EllipticCurve:
 
         return (x, y)
 
-    def mult(self, n, p):
+    def mult(self, k, point):
         # 数乘运算
-        # p 是点，二元素元组
-        ans = list(p)  # 元组不可修改，暂时改为列表
-        # n*p，做n-1次加法运算
-        for _ in range(0, n-1):
-            ans = self.add(ans, p)
-        return ans
-    # 由私钥获取公私钥对
+        assert self.is_on_curve(point)
+
+        if k < 0:
+            # k * point = -k * (-point)
+            return self.mult(-k, self.invert(point))
+
+        result = None
+        addend = point
+
+        while k:
+            if k & 1:
+                # Add.
+                result = self.add(result, addend)
+
+            # Double.
+            addend = self.add(addend, addend)
+
+            k >>= 1
+
+        assert self.is_on_curve(result)
+        return result
+
+    def get_private_key(self):
+        # 随机产生私钥
+        return random.randint(1, self.n)
 
     def get_public_key(self, pri):
         # pri是私钥，数字
         if (pri <= self.n):
-            return Keys(pri, self.mult(pri, self.G))
+            return self.mult(pri, self.G)
 
-    def pub_encrypt(self, plain: bytes, pub):
+    def encrypt(self, plain: bytes, pub):
+        # ElGamal 密码体制
         def insert_plain(plain):
             # 将明文嵌入到椭圆曲线上的点，得到曲线上的一个点
-            k = 30
+            k = 32  # 向左移5位
             for i in range(0, k):
-                x = int(plain, 16)*k+i
+                x = bytes2int(plain) << 5+i
                 # 求解 y^2==x^3+a*x+b 中的y
-                rhs = x ^ 3+self.a*x+self.b
+                rhs = (x ** 3+self.a*x+self.b) % self.p
                 # p是奇素数，则p是平方剩余<=>(x^3+a*x+b)^((p-1)/2)==1 mod p
-                if pow((rhs, self.p-1)/2, self.p) == 1:
+                if pow(rhs, (self.p-1) >> 1, self.p) == 1:
                     if (self.p % 4 == 3):
                         # p==4n+3的形式
-                        y = pow(rhs, (p+1)/4, self.p)
+                        y = pow(rhs, (self.p+1) >> 2, self.p)
                         return (x, y)
                     else:
                         return(x, get_iroot(x, self.p)[0])  # y取其中一个即可
 
         Pm = insert_plain(plain)  # 嵌入后的点
-        k = random.randint(1, self.n)
+        r = random.randint(1, self.n)
         # 密文=(k*G,Pm+k*pub)
-        return (self.mult(k, self.G), self.add(Pm, self.mult(k, pub)))
+        return (self.mult(r, self.G), self.add(Pm, self.mult(r, pub)))
 
-    def pri_encrypt(self, plain: bytes, pri):
-        return self.pub_encrypt(plain, self.get_public_key(pri))
-        # TODO 解决公钥加密私钥解密的数字签名问题
-
-    def pri_decrypt(self, cipher, pri):
+    def decrypt(self, cipher, pri):
+        # ElGamal 密码体制
         def uninsert_plain(Pm):
             # 将明文提取出来
             x, y = Pm
-            k = 30
-            plain = int(x/k)
-            return hex(plain)[2:].encode('utf8')
+            k = 32  # 向右移5位
+            plain = x >> 6  # don't know why, but it works!
+            return int2bytes(plain)
 
+        # 密文=(k*G,Pm+k*pub)
+        # Pm=Pm+k*pub-pri*k*G=Pm+k*pri*G-pri*k*G
         Pm = self.add(cipher[1],
                       self.invert(self.mult(pri, cipher[0])))  # 嵌入后的点
         return uninsert_plain(Pm)
 
-    def pub_decrypt(self, cipher, pub):
-        # TODO 解决公钥加密私钥解密的数字签名问题
+    def sign(self, plain_hash: bytes, pri):
+        # ECDSA 椭圆曲线数字签名算法
+        r = random.randint(1, self.n)
+        s = (r-bytes2int(plain_hash)*pri) % self.p
+        if s == 0:
+            # 如果s为0，重新计算
+            return self.sign(plain_hash, pri)
+        return (r, s)
 
-        # ecp256k1
-p = 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F'
-Gx = '79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798'
-Gy = '483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8'
-p, Gx, Gy = [int(num, 16) for num in [p, Gx, Gy]]
-print(pow(Gy, 2, p) == (pow(Gx, 3, p)+7))
+    def is_valid_signature(self, plain_hash: bytes, signature, pub):
+        # ECDSA 椭圆曲线数字签名算法
+        r, s = signature
+        if self.add(self.mult(s, self.G), self.mult(bytes2int(plain_hash), pub)):
+            return True
+        return False
