@@ -50,7 +50,7 @@ signature = ec.get_signature(message_hash, ec_pri)
 print_status('+', 'Signature generated: {}'.format(signature))
 
 
-# 串接明文和签名
+# 串接明文和签名(打包)
 package = '{}|{},{}'.format(message, *signature)
 print_status(
     '+', "Concatenated message and signature (package): {}".format(package))
@@ -77,7 +77,7 @@ decrypted_package = aes_decrypt(aes_secret, encrypted_package).decode('utf8')
 print_status('+', 'Decrypted package: {}'.format(decrypted_package))
 
 
-# 将明文和签名分开
+# 将明文和签名分开(解包)
 print_status('*', 'Spliting message and signature...')
 decrypted_message, decrypted_signature = decrypted_package.split('|')
 decrypted_signature = tuple((int(x) for x in decrypted_signature.split(',')))
@@ -85,17 +85,9 @@ print_status('+', 'Message: {}'.format(decrypted_message))
 print_status('+', 'Signature: {}'.format(decrypted_signature))
 
 
-# 检查是否正确的签名
+# 检查签名是否有效
 print_status('*', "Checking whether the signature is valid")
 print_status(
     '!', "Your Elliptic curve public key is: {}, remember?".format(ec_pub))
 print_status('+', "Is the signature valid? {}".format(
     ec.is_valid_signature(sha1(decrypted_message.encode('utf8')), decrypted_signature, ec_pub)))
-
-
-# print(ec.is_valid_signature(data_hash, signature, pub))
-
-# cipher = ec.encrypt(data, ec_pub)
-# print(cipher)
-# plain = ec.decrypt(cipher, ec_pri)
-# print(plain)
