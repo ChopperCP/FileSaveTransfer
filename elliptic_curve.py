@@ -3,12 +3,6 @@ import random
 from tools import *
 
 
-class Keys:
-    def __init__(self, pri, pub):
-        self.pri = pri  # 私钥
-        self.pub = pub  # 公钥，是点，二元素元组
-
-
 class EllipticCurve:
     def __init__(self, a, b, p, G, n):
         # 有限域上的椭圆曲线方程：y^2 mod p = (x^3+ax+b) mod p
