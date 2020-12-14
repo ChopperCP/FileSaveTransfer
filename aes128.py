@@ -473,7 +473,7 @@ def get_key_iv(password, salt, workload=100000):
     return aes_key, hmac_key, iv
 
 
-def encrypt(key, plaintext, workload=100000):
+def aes_encrypt(key, plaintext, workload=100000):
     """
     Encrypts `plaintext` with `key` using AES-128 (CBC mode), an HMAC to verify integrity,
     and PBKDF2 to stretch the given key.
@@ -493,7 +493,7 @@ def encrypt(key, plaintext, workload=100000):
     return hmac + salt + ciphertext
 
 
-def decrypt(key, ciphertext, workload=100000):
+def aes_decrypt(key, ciphertext, workload=100000):
     """
     Decrypts `ciphertext` with `key` using AES-128, an HMAC to verify integrity,
     and PBKDF2 to stretch the given key.
