@@ -1,11 +1,6 @@
 from tools import *
-from decimal import Decimal
+from sha1 import *
+import binascii
 
 data = b'hello world'
-print(bin(bytes2int(data))[2:])
-
-# 110100001100101011011000110110001101111001000000111011101101111011100100110110001100100
-# 0110100001100101011011000110110001101111001000000111011101101111011100100110110001100100
-print('{0:08b}'.format(7))
-print(data[1])
-print(128/8)
+print(binascii.b2a_hex(sha1(data)).decode('utf8'))

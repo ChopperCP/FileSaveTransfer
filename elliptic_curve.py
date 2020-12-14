@@ -130,13 +130,13 @@ class EllipticCurve:
                       self.invert(self.mult(pri, cipher[0])))  # 嵌入后的点
         return uninsert_plain(Pm)
 
-    def sign(self, plain_hash: bytes, pri):
+    def get_signature(self, plain_hash: bytes, pri):
         # ECDSA 椭圆曲线数字签名算法
         r = random.randint(1, self.n)
         s = (r-bytes2int(plain_hash)*pri) % self.p
         if s == 0:
             # 如果s为0，重新计算
-            return self.sign(plain_hash, pri)
+            return self.get_signature(plain_hash, pri)
         return (r, s)
 
     def is_valid_signature(self, plain_hash: bytes, signature, pub):
