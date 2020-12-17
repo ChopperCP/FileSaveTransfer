@@ -133,7 +133,7 @@ class EllipticCurve:
     def get_signature(self, plain_hash: bytes, pri):
         # ECDSA 椭圆曲线数字签名算法
         r = random.randint(1, self.n)
-        s = (r-bytes2int(plain_hash)*pri) % self.p
+        s = (r-bytes2int(plain_hash)*pri) % self.n
         if s == 0:
             # 如果s为0，重新计算
             return self.get_signature(plain_hash, pri)
@@ -142,6 +142,8 @@ class EllipticCurve:
     def is_valid_signature(self, plain_hash: bytes, signature, pub):
         # ECDSA 椭圆曲线数字签名算法
         r, s = signature
-        if self.add(self.mult(s, self.G), self.mult(bytes2int(plain_hash), pub)):
+        # s*G+hash*pri*G == (r-hash*pri)*G+hash*pri*G == r*G
+        breakpoint()
+        if self.add(self.mult(s, self.G), self.mult(bytes2int(plain_hash), pub)) == self.mult(r, self.G):
             return True
         return False

@@ -89,5 +89,6 @@ print_status('+', 'Signature: {}'.format(decrypted_signature))
 print_status('*', "Checking whether the signature is valid")
 print_status(
     '!', "Your Elliptic curve public key is: {}, remember?".format(ec_pub))
+decrypted_message_hash = sha1(decrypted_message.encode('utf8'))
 print_status('+', "Is the signature valid? {}".format(
-    ec.is_valid_signature(sha1(decrypted_message.encode('utf8')), decrypted_signature, ec_pub)))
+    ec.is_valid_signature(decrypted_message_hash, decrypted_signature, ec_pub)))
