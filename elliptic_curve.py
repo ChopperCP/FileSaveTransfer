@@ -143,7 +143,6 @@ class EllipticCurve:
         # ECDSA 椭圆曲线数字签名算法
         r, s = signature
         # s*G+hash*pri*G == (r-hash*pri)*G+hash*pri*G == r*G
-        breakpoint()
         if self.add(self.mult(s, self.G), self.mult(bytes2int(plain_hash), pub)) == self.mult(r, self.G):
             return True
         return False
